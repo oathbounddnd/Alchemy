@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-store" />
+  <title>Alchemy Craft</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Cinzel:wght@400..900&display=swap" rel="stylesheet">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0a140f">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <style>
+
+<!-- Force landscape orientation -->
+  <meta name="screen-orientation" content="landscape">
+  <meta name="mobile-web-app-capable" content="yes">
+    :root{ --glow:#9fe8c9; --gold:#c7a86c; --fav:#ffd700; --master:#00e1ff; }
+    *{ box-sizing:border-box }
+    body{
+      margin:0; color:#e7f6ef; font-family:"Cinzel",serif; display:flex; flex-direction:column; min-height:100vh;
+      background:url('./background.png') no-repeat center center fixed; background-size:cover;
+    }
+    header{ position:sticky; top:0; z-index:20; text-align:center; padding:10px;
+      background:rgba(10,20,15,.55); border-bottom:1px solid rgba(199,168,108,.25); backdrop-filter:blur(2px); }
+    .title{ font-family:"MedievalSharp","Cinzel",serif; font-size:1.5rem; margin:0; color:var(--glow); text-shadow:0 0 8px rgba(159,232,201,.5) }
+
+    nav{ display:flex; justify-content:center; background:rgba(8,18,12,.45); border-bottom:1px solid rgba(199,168,108,.25); backdrop-filter:blur(2px) }
+    .tab{ flex:1; max-width:220px; padding:8px; text-align:center; cursor:pointer; color:#eaf7f0; background:none; border:none; font-size:.9rem }
+    .tab.active{ background:rgba(199,168,108,.15); border-bottom:3px solid var(--gold); color:var(--glow); font-weight:bold }
+
+    main{ flex:1; padding:12px }
+    .tab-content{ display:none }
+    .tab-content.active{ display:block; border:1px dashed rgba(199,168,108,.35); border-radius:12px; padding:10px; background:rgba(8,18,12,.4); backdrop-filter:blur(2px) }
+
+    /* Search + buttons */
+    .searchbar{ display:flex; gap:6px; margin:6px 0 8px }
+    .searchbar input[type="search"]{ flex:1; padding:5px 8px; border-radius:8px; border:1px solid rgba(199,168,108,.45);
+      background:rgba(8,18,12,.45); color:#eaf7f0; font-size:.85rem; outline:none }
+    button, .btn{ border:1px solid rgba(199,168,108,.5); background:rgba(15,30,20,.45); color:#eaf7f0; padding:6px 8px; border-radius:8px; cursor:pointer; font-size:.8rem }
+
+    /* Independent scroll areas */
+    .list{ max-height:60vh; overflow:auto; padding-right:6px }
+
+    /* Cards — compact + hover shine */
+    .potion-card,.ingredient-card{
+      border:1px solid rgba(199,168,108,.35); border-radius:10px; padding:8px; margin:8px 0; background:rgba(15,30,20,.28);
+      box-shadow:0 2px 6px rgba(0,0,0,.4); display:flex; justify-content:space-between; align-items:center; gap:8px;
+      transition: box-shadow .2s ease, transform .2s ease; position:relative; overflow:hidden;
+    }
+    .potion-card:hover,.ingredient-card:hover{ box-shadow:0 0 0 2px rgba(199,168,108,.35), 0 0 18px rgba(159,232,201,.35) inset; transform:translateY(-1px) }
+    .potion-card::after,.ingredient-card::after{
+      content:""; position:absolute; inset:0; pointer-events:none;
+      background:radial-gradient(60% 60% at 50% -10%, rgba(159,232,201,.15), transparent 70%);
+      opacity:0; transition:opacity .2s ease;
+    }
+    .potion-card:hover::after,.ingredient-card:hover::after{ opacity:1 }
+
+    .potion-info,.ingredient-info{ flex:1 }
+    .potion-card h3,.ingredient-card h3{ margin:0 0 3px; font-family:"MedievalSharp",serif; font-size:1rem; color:var(--glow); display:flex; align-items:center; gap:6px }
+    .rarity{ font-size:.8rem; font-style:italic; margin-bottom:2px; color:var(--gold) }
+    .description{ font-size:.82rem; opacity:.95 }
+    .actions{ display:flex; gap:6px; align-items:center }
+    .count-pill,.qty-badge{ display:inline-flex; align-items:center; justify-content:center; min-width:22px; height:20px; padding:0 6px;
+      border:1px solid rgba(199,168,108,.5); border-radius:999px; background:rgba(8,18,12,.45); color:var(--gold); font-weight:700; font-size:.75rem }
+    .icon-btn{ cursor:pointer; font-size:1.1rem; border:none; background:none; color:#666; transition:transform .2s,color .3s,text-shadow .3s }
+    .icon-btn:hover{ transform:scale(1.12) }
+    .icon-btn.fav.active{ color:var(--fav); text-shadow:0 0 8px var(--fav),0 0 15px var(--fav) }
+    .icon-btn.master.active{ color:var(--master); text-shadow:0 0 8px var(--master),0 0 15px var(--master) }
+    .craftable{ box-shadow:0 0 0 2px #a060ff, 0 0 12px #a060ff inset }
+
+    .qty-btn{ border:1px solid rgba(199,168,108,.5); background:rgba(15,30,20,.45); color:#eaf7f0; width:24px; height:24px; border-radius:6px; font-size:.8rem; cursor:pointer }
+
+    /* Subtabs */
+    .subtabs{ display:flex; gap:6px; margin:0 0 6px }
+    .subtab{ padding:5px 9px; border:1px solid rgba(199,168,108,.35); border-radius:6px; background:rgba(15,30,20,.4); color:#eaf7f0; cursor:pointer; font-size:.8rem }
+    .subtab.active{ background:rgba(199,168,108,.18); border-color:var(--gold); color:var(--glow) }
+
+    /* Overlay / dialogs */
+    .overlay{ display:none; position:fixed; inset:0; z-index:1100; background:rgba(0,0,0,.6); align-items:center; justify-content:center }
+    .dialog{ width:min(640px,96vw); background:rgba(8,18,12,.98); border:1px solid rgba(199,168,108,.4); border-radius:10px; padding:12px }
+    .dialog h3{ margin:6px 0 10px }
+    .form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px }
+    .form-grid .full{ grid-column:1/-1 }
+
+    /* Install banner */
+    #install-banner{position:fixed;left:12px;right:12px;bottom:12px;z-index:1400;
+      background:rgba(8,18,12,.96);border:1px solid rgba(199,168,108,.4);border-radius:12px;
+      padding:10px;display:flex;gap:8px;align-items:center;justify-content:space-between;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+    #install-banner.hidden{display:none}
+    #install-banner .txt{font-size:.9rem}
+    #install-btn{border:1px solid rgba(199,168,108,.6);background:rgba(15,30,20,.8);color:#e7f6ef;padding:6px 10px;border-radius:8px;cursor:pointer}
+    #install-dismiss{border:none;background:none;color:#e7f6ef;font-size:1.1rem;cursor:pointer}
+
+    /* FX layers */
+    .fx{ position:fixed; inset:0; pointer-events:none; display:flex; align-items:center; justify-content:center; z-index:1300; opacity:0; transition:opacity .15s ease }
+    .fx.show{ opacity:1 }
+    .fx video{ max-width:min(80vmin,900px); max-height:min(80vmin,900px) }
+    #fx-bubble2 video{ transform:scale(1.05) }
+    #fx-smoke video{ transform:scale(2.5) } /* bigger smoke */
+
+    /* Vignette */
+    .vignette:before{ content:""; position:fixed; inset:0; pointer-events:none; box-shadow:inset 0 0 180px rgba(0,0,0,.65); z-index:10 }
+
+    /* Collapsible */
+    .expand-btn{border:none;background:none;color:#eaf7f0;font-size:1rem;cursor:pointer;transform:rotate(0deg);transition:transform .2s}
+    .potion-card.expanded .expand-btn,.ingredient-card.expanded .expand-btn{transform:rotate(90deg)}
+    .card-details{display:none;margin-top:4px;font-size:.82rem;opacity:.95}
+    .potion-card.expanded .card-details,.ingredient-card.expanded .card-details{display:block}
+
+ /* Phone portrait tweaks */
+    @media (max-width:420px){
+      .title{font-size:1.28rem}
+      .tab{font-size:.85rem}
+      .potion-card h3,.ingredient-card h3{font-size:.95rem}
+      .description,.card-details,.rarity{font-size:.78rem}
+      button,.btn{font-size:.75rem;padding:5px 7px}
+      .icon-btn{font-size:1.05rem}
+    }
+
+    /* Rotation prompt overlay */
+    .rotate-prompt{
+      display:none;
+      position:fixed;
+      inset:0;
+      z-index:9999;
+      background:rgba(8,18,12,.98);
+      align-items:center;
+      justify-content:center;
+      flex-direction:column;
+      gap:20px;
+      text-align:center;
+      padding:20px;
+    }
+    .rotate-icon{
+      font-size:4rem;
+      animation:rotatePhone 1.5s ease-in-out infinite;
+    }
+    @keyframes rotatePhone{
+      0%,100%{transform:rotate(0deg)}
+      50%{transform:rotate(90deg)}
+    }
+    @media (orientation:portrait) and (max-width:768px){
+      .rotate-prompt{display:flex}
+    }
+
+    footer{ padding:8px; text-align:center; opacity:.8 }
+    #shopping-list li{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin:4px 0 }
+    #shopping-list .remove{ font-size:.9rem; line-height:1 }
+  </style>
+</head>
+<body class="vignette">
+
+<!-- Rotation prompt -->
+  <div class="rotate-prompt">
+    <div class="rotate-icon">📱 ↻</div>
+    <h2 style="font-family:'MedievalSharp',serif;color:var(--glow);margin:0">Please Rotate Your Device</h2>
+    <p style="max-width:300px;opacity:.9">This grimoire is best viewed in landscape orientation</p>
+  </div>
+  <!-- Always-on background music -->
+  <audio id="bgm" src="Apothecary_01.ogg" preload="auto" loop playsinline></audio>
+
+  <header><h1 class="title">Alchemy Craft</h1></header>
+  <nav>
+    <button class="tab active" data-tab="potions">Potion List</button>
+    <button class="tab" data-tab="ingredients">Ingredients</button>
+    <button class="tab" data-tab="shopping">Shopping List</button>
+  </nav>
+
+  <main>
+    <!-- POTIONS -->
+    <section id="potions" class="tab-content active">
+      <div class="searchbar">
+        <input id="potion-search" type="search" placeholder="Search potions..." />
+        <button class="btn" id="potion-clear">Clear</button>
+        <button class="btn" id="add-potion">+ Add Potion</button>
+      </div>
+      <div class="subtabs" id="potions-subtabs">
+        <button class="subtab active" data-mode="all">All</button>
+        <button class="subtab" data-mode="fav">Favourites ★</button>
+        <button class="subtab" data-mode="master">Mastered ✦</button>
+      </div>
+      <div class="list" id="potion-list"></div>
+      <div class="empty" id="no-favs" hidden>No favourites yet.</div>
+      <div class="empty" id="no-masters" hidden>No mastered potions yet.</div>
+    </section>
+
+    <!-- INGREDIENTS -->
+    <section id="ingredients" class="tab-content">
+      <div class="searchbar">
+        <input id="ingredient-search" type="search" placeholder="Search ingredients..." />
+        <button class="btn" id="ingredient-clear">Clear</button>
+        <button class="btn" id="add-ingredient">+ Add Ingredient</button>
+      </div>
+      <div class="subtabs" id="ingredient-filters">
+        <button class="subtab active" data-imode="all">All</button>
+        <button class="subtab" data-imode="fav">Favourites ★</button>
+      </div>
+      <div class="list" id="ingredient-list"></div>
+    </section>
+
+    <!-- SHOPPING -->
+    <section id="shopping" class="tab-content">
+      <h3>Shopping List</h3>
+      <ul id="shopping-list"></ul>
+    </section>
+  </main>
+
+  <footer><span class="brand">Alchemy Craft</span> — a pocket grimoire.</footer>
+
+  <!-- Install banner -->
+  <div id="install-banner" class="hidden">
+    <span class="txt">Install <strong>Alchemy Craft</strong>?</span>
+    <div style="display:flex;gap:8px">
+      <button id="install-btn">Install</button>
+      <button id="install-dismiss" title="Dismiss">×</button>
+    </div>
+  </div>
+
+  <!-- FX layers -->
+  <div id="fx-smoke" class="fx"><video id="smoke-video" src="Smoke_1_Mist_1_Storm_1_RADIUS_COLOR_10_1200x1200.webm" preload="auto"></video></div>
+  <div id="fx-transmute" class="fx"><video id="transmute-video" src="TransmutationCircleComplete_02_Regular_Green_800x800.webm" preload="auto"></video></div>
+  <div id="fx-bubble" class="fx"><video id="bubble1-video" src="BubbleComplete001_001_Purple_2x2_400x400.webm" preload="auto"></video></div>
+  <div id="fx-bubble2" class="fx"><video id="bubble2-video" src="BubbleComplete002_001_PurpleRed_3x3_600x600.webm" preload="auto"></video></div>
+  <div id="fx-aura" class="fx"><video id="aura-video" src="Aura_2_Emanating_CIRCLE_RADIUS_LOOP_COLOR_3_1200x1200.webm" preload="auto"></video></div>
+
+  <!-- CRAFT MODAL -->
+  <div id="craft-overlay" class="overlay" aria-hidden="true">
+    <div class="dialog">
+      <h3>Craft Options</h3>
+      <div id="craft-body" class="form-grid">
+        <div>
+          <div class="field"><label>Rarity DC</label><div id="craft-base">—</div></div>
+          <div class="field"><label><input type="checkbox" id="opt-potent"/> Potent (+1 die) <em>+3 DC</em></label></div>
+          <div class="field"><label><input type="checkbox" id="opt-aoe"/> Extend 15ft <em>+3 DC</em></label></div>
+          <div class="field"><label>Increase DC by <input id="opt-inc" type="number" min="0" value="0" style="width:56px;"/> (×2)</label></div>
+        </div>
+        <div>
+          <div class="field">
+            <label>Optional extra ingredients (<em>+2 DC</em> each)</label>
+            <select id="extra-ings" multiple size="6"
+              style="width:100%;background:rgba(8,18,12,.45);color:#eaf7f0;border:1px solid rgba(199,168,108,.45);
+                     border-radius:8px;padding:6px;font-family:'Cinzel',serif"></select>
+          </div>
+          <div class="field"><label>Final DC</label> <span class="dc-badge" id="craft-final-dc"
+            style="padding:2px 6px;border:1px solid rgba(199,168,108,.45);border-radius:6px;">—</span></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+        <button class="btn" id="craft-cancel">Cancel</button>
+        <button class="btn" id="craft-confirm">Craft</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD / EDIT MODALS -->
+  <div id="add-potion-overlay" class="overlay">
+    <div class="dialog">
+      <h3 id="potion-form-title">Add Potion</h3>
+      <div class="form-grid">
+        <label class="full">Name <input id="p-name" type="text" style="width:100%"/></label>
+        <label>Rarity
+          <select id="p-rarity">
+            <option>Common</option><option>Uncommon</option><option>Rare</option><option>Very Rare</option><option>Legendary</option>
+          </select>
+        </label>
+        <label>Tool
+          <select id="p-tool">
+            <option value="">—</option>
+            <option>Alchemist Supplies</option><option>Tinker Tools</option><option>Poisoner's Kit</option>
+          </select>
+        </label>
+        <label class="full">Description
+          <textarea id="p-desc" rows="3" style="width:100%"></textarea>
+        </label>
+        <div class="full">
+          <label>Ingredients (press Enter to add)</label>
+          <div style="display:flex;gap:6px">
+            <input id="p-ing-input" type="text" placeholder="Type name and press Enter" style="flex:1">
+            <button class="btn" id="p-ing-add">Add</button>
+          </div>
+          <div id="p-ing-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+        <button class="btn" id="p-cancel">Cancel</button>
+        <button class="btn" id="p-save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="add-ingredient-overlay" class="overlay">
+    <div class="dialog">
+      <h3 id="ing-form-title">Add Ingredient</h3>
+      <div class="form-grid">
+        <label class="full">Name <input id="i-name" type="text" style="width:100%"></label>
+        <label>Rarity
+          <select id="i-rarity">
+            <option>Common</option><option>Uncommon</option><option>Rare</option><option>Very Rare</option><option>Legendary</option>
+          </select>
+        </label>
+        <label class="full">Description
+          <textarea id="i-desc" rows="3" style="width:100%"></textarea>
+        </label>
+        <label class="full">Medicinal Use
+          <textarea id="i-med" rows="2" placeholder="Healing, antitoxin, vigor…" style="width:100%"></textarea>
+        </label>
+        <label class="full">Mystic Use
+          <textarea id="i-mys" rows="2" placeholder="Warding, divination, necrotic binding…" style="width:100%"></textarea>
+        </label>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+        <button class="btn" id="i-cancel">Cancel</button>
+        <button class="btn" id="i-save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Helpers
+    const $ = s => document.querySelector(s);
+    const $$ = s => Array.from(document.querySelectorAll(s));
+    const rarityDC = { 'Common':10, 'Uncommon':12, 'Rare':14, 'Very Rare':16, 'Legendary':20 };
+
+    // Background music (auto-start; if blocked, start on first interaction)
+    (function(){
+      const bgm = document.getElementById('bgm'); if(!bgm) return;
+      bgm.volume = 0.35;
+      const tryPlay = () => bgm.play().catch(()=>{});
+      tryPlay();
+      const kick = () => { tryPlay(); document.removeEventListener('pointerdown', kick); document.removeEventListener('keydown', kick); };
+      document.addEventListener('pointerdown', kick, {once:true});
+      document.addEventListener('keydown', kick, {once:true});
+    })();
+
+    // PWA install prompt & SW registration
+    (function(){
+      let deferredPrompt = null;
+      const banner = document.getElementById('install-banner');
+      const btnInstall = document.getElementById('install-btn');
+      const btnDismiss = document.getElementById('install-dismiss');
+      if (btnDismiss) btnDismiss.addEventListener('click', ()=> banner && (banner.classList.add('hidden')));
+      window.addEventListener('beforeinstallprompt', (e)=>{
+        e.preventDefault(); deferredPrompt = e;
+        if(banner) banner.classList.remove('hidden');
+      });
+      if (btnInstall) btnInstall.addEventListener('click', async ()=>{
+        if(!deferredPrompt) return;
+        deferredPrompt.prompt();
+        await deferredPrompt.userChoice.catch(()=>{});
+        deferredPrompt = null;
+        if(banner) banner.classList.add('hidden');
+      });
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', ()=> navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+      }
+    })();
+
+    // State
+    const SAVE_KEY='alchemy-craft-save-v7';
+    const FALLBACKS=['alchemy-craft-save-v6','alchemy-craft-save-v5'];
+    let state={ potions:[], ingredients:[], shop:[], favs:new Set(), masters:new Set() };
+    let editPotionIndex=null, editIngredientIndex=null;
+    let tempPotionIngredients=[];
+
+    // Persistence
+    function save(){
+      localStorage.setItem(SAVE_KEY, JSON.stringify({
+        potions:state.potions, ingredients:state.ingredients, shop:state.shop,
+        favs:[...state.favs], masters:[...state.masters]
+      }));
+    }
+    function load(){
+      let raw=localStorage.getItem(SAVE_KEY);
+      if(!raw){
+        for(const k of FALLBACKS){ raw=localStorage.getItem(k); if(raw) break; }
+      }
+      if(raw){
+        try{
+          const d=JSON.parse(raw);
+          state.potions=d.potions||[];
+          state.ingredients=(d.ingredients||[]).map(i=>{
+            const j=Object.assign({fav:false, medicinal:'', mystic:'', desc:i.desc||'', qty:0}, i);
+            if(typeof j.fav!=='boolean') j.fav=false;
+            if(typeof j.medicinal!=='string') j.medicinal='';
+            if(typeof j.mystic!=='string') j.mystic='';
+            if(typeof j.qty!=='number') j.qty=0;
+            return j;
+          });
+          state.shop=d.shop||[];
+          state.favs=new Set(d.favs||[]);
+          state.masters=new Set(d.masters||[]);
+        }catch(e){}
+      }
+      if(!state.potions.length && !state.ingredients.length){
+        // seed demo (once)
+        state.ingredients=[
+          {name:'Mandrake Root', rarity:'Uncommon', desc:'Useful in hexes.', medicinal:'Numbing draughts', mystic:'Dream-binding', qty:2, fav:false},
+          {name:'Ghoul’s Fennel', rarity:'Common', desc:'Grave-soil herb.', medicinal:'Antiemetic', mystic:'Mask death-scent', qty:2, fav:false},
+          {name:'Bloodpetal Blossom', rarity:'Rare', desc:'Crimson bloom.', medicinal:'Stimulant', mystic:'Blood sigils', qty:1, fav:false},
+          {name:'Ironvine Sap', rarity:'Very Rare', desc:'Metallic sap.', medicinal:'Coagulant', mystic:'Iron ward', qty:1, fav:false},
+          {name:'Moonlit Toadstool', rarity:'Uncommon', desc:'Glows under moon.', medicinal:'Sedative', mystic:'Nocturne visions', qty:1, fav:false}
+        ];
+        state.potions=[
+          {name:'Philter of Emberfire', rarity:'Rare', tool:'Alchemist Supplies', desc:'Grants fiery breath.',
+           recipe:['Bloodpetal Blossom','Ironvine Sap']},
+          {name:'Draught of Moonlight', rarity:'Common', tool:'Tinker Tools', desc:'Heals in the open sky.',
+           recipe:['Moonlit Toadstool','Ghoul’s Fennel']},
+          {name:'Vial of Hollow Dreams', rarity:'Very Rare', tool:"Poisoner's Kit", desc:'Deep slumber with visions.',
+           recipe:['Ironvine Sap','Mandrake Root']}
+        ];
+        save();
+      }
+    }
+
+    // Helpers
+    function recipeCountPossible(recipe){
+      if(!recipe || !recipe.length) return 0;
+      const counts = recipe.map(n => (state.ingredients.find(i=>i.name===n)?.qty)||0);
+      return Math.min(...counts);
+    }
+
+    function renderPotions(){
+      const q=$('#potion-search').value.toLowerCase().trim();
+      const mode=$('#potions-subtabs .subtab.active')?.dataset.mode || 'all';
+      const list=$('#potion-list'); list.innerHTML='';
+      state.potions.filter(p=>{
+        if(mode==='fav' && !state.favs.has(p.name)) return false;
+        if(mode==='master' && !state.masters.has(p.name)) return false;
+        if(q && !(p.name+' '+(p.desc||'')+' '+p.rarity+' '+(p.tool||'')+' '+(p.recipe||[]).join(' ')).toLowerCase().includes(q)) return false;
+        return true;
+      }).forEach((p,idx)=>{
+        const craftable=recipeCountPossible(p.recipe);
+        const card=document.createElement('div'); card.className='potion-card'; if(craftable>0) card.classList.add('craftable');
+        card.innerHTML=`
+          <div class="potion-info">
+            <h3><button class="expand-btn" aria-label="Expand">▸</button> ${p.name}</h3>
+            <div class="rarity">${p.rarity}</div>
+            <div class="card-details">
+              <div class="description"><em>Tool:</em> ${p.tool||'—'}</div>
+              <div><strong>Ingredients:</strong> ${(p.recipe||[]).join(', ')}</div>
+              ${p.desc?`<div class="description">${p.desc}</div>`:""}
+            </div>
+          </div>
+          <div class="actions">
+            <span class="count-pill" title="You can craft">${craftable}</span>
+            <button class="btn missing">+ Missing</button>
+            <button class="btn craft">Craft</button>
+            <button class="btn edit">Edit</button>
+            <button class="btn del">Delete</button>
+            <button class="icon-btn fav ${state.favs.has(p.name)?'active':''}" title="Favourite">★</button>
+            <button class="icon-btn master ${state.masters.has(p.name)?'active':''}" title="Mastered">✦</button>
+          </div>`;
+        card.dataset.index=idx;
+        card.dataset.recipe=JSON.stringify((p.recipe||[]).map(n=>[n,1]));
+
+        const pexp = card.querySelector('.expand-btn'); pexp.onclick = ()=> card.classList.toggle('expanded');
+        card.querySelector('.fav').onclick=e=>{e.currentTarget.classList.toggle('active'); state.favs.has(p.name)?state.favs.delete(p.name):state.favs.add(p.name); save();};
+        card.querySelector('.master').onclick=e=>{e.currentTarget.classList.toggle('active'); state.masters.has(p.name)?state.masters.delete(p.name):state.masters.add(p.name); save();};
+        card.querySelector('.missing').onclick=()=>{
+          const missing=(p.recipe||[]).filter(n=>{ const item=state.ingredients.find(i=>i.name===n); return !item || (item.qty||0)<1; });
+          if(missing.length===0){ alert('No missing ingredients for this recipe.'); return; }
+          missing.forEach(n=>{ if(!state.shop.includes(n)) state.shop.push(n); });
+          renderShop(); save();
+        };
+        card.querySelector('.craft').onclick=()=>openCraft(card,p);
+        card.querySelector('.edit').onclick=()=>openPotionForm(idx);
+        card.querySelector('.del').onclick=()=>{ if(confirm('Delete potion?')){ state.potions.splice(idx,1); save(); renderPotions(); } };
+        list.appendChild(card);
+      });
+      $('#no-favs').hidden=state.potions.some(p=>state.favs.has(p.name));
+      $('#no-masters').hidden=state.potions.some(p=>state.masters.has(p.name));
+    }
+
+    function renderIngredients(){
+      const q=$('#ingredient-search').value.toLowerCase().trim();
+      const mode = $('#ingredient-filters .subtab.active')?.dataset.imode || 'all';
+      const list=$('#ingredient-list'); list.innerHTML='';
+      state.ingredients
+        .filter(i=> mode==='all' ? true : !!i.fav)
+        .filter(i=>!q||(i.name+' '+(i.desc||'')+' '+(i.medicinal||'')+' '+(i.mystic||'')+' '+i.rarity).toLowerCase().includes(q))
+        .forEach((ing,idx)=>{
+          const card=document.createElement('div'); card.className='ingredient-card';
+          card.innerHTML=`
+            <div class="ingredient-info">
+              <h3><button class="expand-btn" aria-label="Expand">▸</button> ${ing.name} <span class="qty-badge"><span class="qty-val">${ing.qty||0}</span></span></h3>
+              <div class="rarity">${ing.rarity}</div>
+              <div class="card-details">
+                ${ing.desc ? `<div class="description">${ing.desc}</div>` : ''}
+                ${(ing.medicinal||'') ? `<div><strong>Medicinal:</strong> ${ing.medicinal}</div>` : ''}
+                ${(ing.mystic||'') ? `<div><strong>Mystic:</strong> ${ing.mystic}</div>` : ''}
+              </div>
+            </div>
+            <div class="actions">
+              <button class="qty-btn dec">−</button><button class="qty-btn inc">+</button>
+              <button class="btn addlist">Add to list</button>
+              <button class="btn edit">Edit</button><button class="btn del">Delete</button>
+              <button class="icon-btn fav ${ing.fav ? 'active' : ''}" title="Favourite">★</button>
+            </div>`;
+          const exp = card.querySelector('.expand-btn'); exp.onclick = ()=> card.classList.toggle('expanded');
+          card.querySelector('.inc').onclick=()=>{ing.qty=(ing.qty||0)+1; card.querySelector('.qty-val').textContent=ing.qty; save(); renderPotions();};
+          card.querySelector('.dec').onclick=()=>{ing.qty=Math.max(0,(ing.qty||0)-1); card.querySelector('.qty-val').textContent=ing.qty; save(); renderPotions();};
+          card.querySelector('.addlist').onclick=()=>{ if(!state.shop.includes(ing.name)){ state.shop.push(ing.name); renderShop(); save(); } };
+          card.querySelector('.edit').onclick=()=>openIngredientForm(idx);
+          card.querySelector('.del').onclick=()=>{ if(confirm('Delete ingredient?')){ state.ingredients.splice(idx,1); save(); renderIngredients(); renderPotions(); } };
+          const favBtn = card.querySelector('.icon-btn.fav');
+          favBtn.onclick = ()=>{ ing.fav = !ing.fav; favBtn.classList.toggle('active', ing.fav); save(); if(mode==='fav') renderIngredients(); };
+          list.appendChild(card);
+        });
+    }
+
+    function renderShop(){
+      const ul=$('#shopping-list'); ul.innerHTML='';
+      state.shop.forEach((n,i)=>{
+        const li=document.createElement('li');
+        li.innerHTML=`<span>${n}</span><button class="btn remove" title="Remove">×</button>`;
+        li.querySelector('.remove').onclick=()=>{ state.shop.splice(i,1); renderShop(); save(); };
+        ul.appendChild(li);
+      });
+    }
+
+    function render(){ renderIngredients(); renderPotions(); renderShop(); }
+
+    // Tabs & search wiring
+    $$('.tab').forEach(t=> t.onclick=()=>{
+      $$('.tab').forEach(b=>b.classList.remove('active'));
+      $$('.tab-content').forEach(c=>c.classList.remove('active'));
+      t.classList.add('active'); $('#'+t.dataset.tab).classList.add('active');
+    });
+    $('#potion-search').oninput=renderPotions; $('#potion-clear').onclick=()=>{ $('#potion-search').value=''; renderPotions(); };
+    $('#ingredient-search').oninput=renderIngredients; $('#ingredient-clear').onclick=()=>{ $('#ingredient-search').value=''; renderIngredients(); };
+
+    // Scoped subtabs
+    $$('#potions-subtabs .subtab').forEach(s=> s.onclick=()=>{
+      $$('#potions-subtabs .subtab').forEach(x=>x.classList.remove('active'));
+      s.classList.add('active'); renderPotions();
+    });
+    $$('#ingredient-filters .subtab').forEach(s=> s.onclick=()=>{
+      $$('#ingredient-filters .subtab').forEach(x=>x.classList.remove('active'));
+      s.classList.add('active'); renderIngredients();
+    });
+
+    // Craft modal
+    function openCraft(card,potion){
+      const overlay=$('#craft-overlay'); const baseEl=$('#craft-base'); const extras=$('#extra-ings');
+      const optPotent=$('#opt-potent'); const optAoe=$('#opt-aoe'); const optInc=$('#opt-inc'); const finalDCEl=$('#craft-final-dc');
+      const rarity=card.querySelector('.rarity').textContent.trim(); const base=rarityDC[rarity]||10;
+      baseEl.textContent=base; optPotent.checked=false; optAoe.checked=false; optInc.value=0;
+      // extras: only qty>0
+      extras.innerHTML='';
+      state.ingredients.forEach(ing=>{
+        if((ing.qty||0)>0){
+          const opt=document.createElement('option'); opt.value=ing.name; opt.textContent=ing.name; extras.appendChild(opt);
+        }
+      });
+      function recalc(){ let dc=base; if(optPotent.checked) dc+=3; if(optAoe.checked) dc+=3; const inc=parseInt(optInc.value||'0',10); if(inc>0) dc+=inc*2; dc += (extras.selectedOptions.length)*2; finalDCEl.textContent=dc; }
+      $('#craft-body').oninput=recalc; $('#craft-body').onchange=recalc; recalc();
+      $('#craft-cancel').onclick=()=> overlay.style.display='none';
+      $('#craft-confirm').onclick=()=>{
+        const ings=(potion.recipe||[]);
+        for(const n of ings){ const q=(state.ingredients.find(i=>i.name===n)?.qty)||0; if(q<1){ alert('Not enough '+n); return; } }
+        ings.forEach(n=>{ const ing=state.ingredients.find(i=>i.name===n); if(ing){ ing.qty=Math.max(0,(ing.qty||0)-1); } });
+        save(); renderIngredients(); renderPotions();
+        overlay.style.display='none';
+        try{ playCraftFX(); }catch(e){}
+      };
+      overlay.style.display='flex';
+    }
+
+    // Add/Edit Potion modal
+    function resetPotionForm(){ $('#p-name').value=''; $('#p-rarity').value='Common'; $('#p-tool').value=''; $('#p-desc').value=''; tempPotionIngredients=[]; $('#p-ing-list').innerHTML=''; $('#p-ing-input').value=''; }
+    function addPotionChip(name){ const chip=document.createElement('span'); chip.className='count-pill'; chip.textContent=name; chip.style.cursor='pointer'; chip.title='Click to remove'; chip.onclick=()=>{ tempPotionIngredients=tempPotionIngredients.filter(x=>x!==name); chip.remove(); }; $('#p-ing-list').appendChild(chip); }
+    function openPotionForm(index=null){
+      editPotionIndex=index; $('#potion-form-title').textContent=index===null?'Add Potion':'Edit Potion'; resetPotionForm();
+      if(index!==null){ const p=state.potions[index]; $('#p-name').value=p.name; $('#p-rarity').value=p.rarity; $('#p-tool').value=p.tool||''; $('#p-desc').value=p.desc||''; tempPotionIngredients=[...(p.recipe||[])]; tempPotionIngredients.forEach(addPotionChip); }
+      $('#add-potion-overlay').style.display='flex';
+    }
+    $('#p-ing-add').onclick=()=>{ const v=$('#p-ing-input').value.trim(); if(!v) return; if(!tempPotionIngredients.includes(v)) tempPotionIngredients.push(v); addPotionChip(v); $('#p-ing-input').value=''; };
+    $('#p-ing-input').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#p-ing-add').click(); } });
+    $('#p-cancel').onclick=()=>{ $('#add-potion-overlay').style.display='none'; };
+    $('#p-save').onclick=()=>{
+      const name=$('#p-name').value.trim(); if(!name){ alert('Name required'); return; }
+      const p={ name, rarity:$('#p-rarity').value, tool:$('#p-tool').value, desc:$('#p-desc').value.trim(), recipe:[...tempPotionIngredients] };
+      if(editPotionIndex===null){ state.potions.push(p); } else { state.potions[editPotionIndex]=p; }
+      save(); renderPotions(); $('#add-potion-overlay').style.display='none'; try{ playAura(); }catch(e){}
+    };
+    $('#add-potion').onclick=()=>openPotionForm(null);
+
+    // Add/Edit Ingredient modal
+    function openIngredientForm(index=null){
+      editIngredientIndex=index; $('#ing-form-title').textContent=index===null?'Add Ingredient':'Edit Ingredient';
+      $('#i-name').value=''; $('#i-rarity').value='Common'; $('#i-desc').value=''; $('#i-med').value=''; $('#i-mys').value='';
+      if(index!==null){ const ing=state.ingredients[index]; $('#i-name').value=ing.name; $('#i-rarity').value=ing.rarity; $('#i-desc').value=ing.desc||''; $('#i-med').value=ing.medicinal||''; $('#i-mys').value=ing.mystic||''; }
+      $('#add-ingredient-overlay').style.display='flex';
+    }
+    $('#i-cancel').onclick=()=>{ $('#add-ingredient-overlay').style.display='none'; };
+    $('#i-save').onclick=()=>{
+      const name=$('#i-name').value.trim(); if(!name){ alert('Name required'); return; }
+      const ing={ name, rarity:$('#i-rarity').value, desc:$('#i-desc').value.trim(), medicinal:$('#i-med').value.trim(), mystic:$('#i-mys').value.trim(), qty:(editIngredientIndex!==null? state.ingredients[editIngredientIndex].qty||0 : 0), fav:(editIngredientIndex!==null? !!state.ingredients[editIngredientIndex].fav : false) };
+      if(editIngredientIndex===null){ state.ingredients.push(ing); } else { state.ingredients[editIngredientIndex]=ing; }
+      save(); renderIngredients(); renderPotions(); $('#add-ingredient-overlay').style.display='none'; try{ playAura(); }catch(e){}
+    };
+    $('#add-ingredient').onclick=()=>openIngredientForm(null);
+
+    // FX & sounds
+    function showFx(id, opts){
+      const el=$(id); if(!el) return;
+      const v=el.querySelector('video'); if(!v) return;
+      v.pause(); try{ v.currentTime=0; }catch{}
+      if(opts && opts.playbackRate) v.playbackRate=opts.playbackRate;
+      el.classList.add('show');
+      const stop=()=>{ el.classList.remove('show'); };
+      v.onended=stop;
+      const start=()=>{ v.play().catch(stop); };
+      if(isFinite(v.duration)&&v.duration>0){ start(); } else { v.onloadedmetadata=start; v.load(); }
+    }
+    function playCraftFX(){
+      showFx('#fx-transmute', {playbackRate:2});
+      showFx('#fx-bubble');
+      showFx('#fx-bubble2', {playbackRate:2});
+      showFx('#fx-smoke');
+      playPotionSound();
+    }
+    function playAura(){ showFx('#fx-aura'); }
+    function playPotionSound(){
+      const picks=['Potion (1).mp3','Potion (2).mp3','Potion (3).mp3','Potion (4).mp3'];
+      const s=new Audio(picks[Math.floor(Math.random()*picks.length)]); s.volume=0.7; s.play().catch(()=>{});
+    }
+
+// Screen orientation lock (where supported)
+    (function(){
+      if(screen.orientation && screen.orientation.lock){
+        screen.orientation.lock('landscape').catch(()=>{});
+      }
+    })();
+
+    // Init
+    load();
+    render();
+  </script>
+</body>
+</html>
